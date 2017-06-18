@@ -35,18 +35,23 @@ void Application::load(){
 }
 
 void Application::loop() {
-    for(int x = -5; x <= 5; x++){
-        for(int y = -5; y <= 5; y++){
-            blockWorld->generateChunk(glm::vec2(x, y));
-        }
-    }
-
     while(m_keepRunning){
         m_keepRunning = AM::WindowHandler::poll();
         debugCam.updateMovement();
         cam.update();
         AM::Time::update();
+
+        if(AM::InputController::isClicked(GLFW_KEY_R)){
+            for(int x = -2; x <= 2; x++){
+                for(int y = -2; y <= 2; y++){
+                    blockWorld->deleteChunk(glm::vec2(x, y));
+                    blockWorld->generateChunk(glm::vec2(x, y));
+                }
+            }
+        }
+
         draw();
+
         AM::InputController::process();
     }
 }
