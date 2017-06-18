@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.7)
 project(Root)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -static-libgcc -static-libstdc++ ")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
 
-set(SOURCE_FILES source/main.cpp)
+set(SOURCE_FILES source/main.cpp source/application.cpp source/application.h source/static/basicmesh.h source/world/chunk/chunk.cpp source/world/chunk/chunk.h source/voxel/voxel.cpp source/voxel/voxel.h source/world/block/block.cpp source/world/block/block.h source/world/block/iblockaccessible.h source/world/block/blockmesh.cpp source/world/block/blockmesh.h source/resources/resourcemanager.h source/resources/resourcemanager.cpp source/world/world/blockworld.cpp source/world/world/blockworld.h source/render/irenderbatch.h source/render/chunkbatch.cpp source/render/chunkbatch.h)
 
 include_directories(${PROJECT_SOURCE_DIR}/../Amethyst/source/)
 include_directories(${PROJECT_SOURCE_DIR}/source/)
