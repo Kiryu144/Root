@@ -4,7 +4,10 @@
 BlockWorld::BlockWorld() : m_terrainGenerator(time(0)) {
     m_stopChunkGeneration = false;
     m_chunkShader = &ResourceManager::shaders.get("chunk");
-    m_chunkGenerationThread = std::thread(&BlockWorld::chunkLoop, std::ref(*this));
+    m_chunkGenerationThread = std::thread(&BlockWorld::chunkLoop, std::ref(*this), 0);
+    m_chunkGenerationThread1 = std::thread(&BlockWorld::chunkLoop, std::ref(*this), 1);
+    m_chunkGenerationThread2 = std::thread(&BlockWorld::chunkLoop, std::ref(*this), 2);
+    m_chunkGenerationThread3 = std::thread(&BlockWorld::chunkLoop, std::ref(*this), 3);
 }
 
 BlockWorld::~BlockWorld() {
@@ -78,8 +81,8 @@ void BlockWorld::removeFromQueue(glm::vec2 chunkPosition) {
     }
 }
 
-void BlockWorld::chunkLoop() {
-    glfwMakeContextCurrent(AM::WindowHandler::getSharedGlfwWindow());
+void BlockWorld::chunkLoop(int windowIndex) {
+    AM::WindowHandler::getSharedWindow(windowIndex)->makeContextCurrent();
     while(!m_stopChunkGeneration){
         m_chunkQueueMutex.lock();
         if(m_generateQueue.size() > 0){

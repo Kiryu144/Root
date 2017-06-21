@@ -21,6 +21,7 @@ private:
     AM::Camera cam;
     AM::Debugcamera debugCam;
 
+    double lastTime = 0;
 
     std::atomic<bool> m_loadingFinished;
     void draw();
@@ -30,6 +31,7 @@ public:
 
     void init();
     void loop();
+    void oncePerSecond();
 };
 
 

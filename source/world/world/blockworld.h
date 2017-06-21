@@ -23,7 +23,13 @@ private:
                 m_chunkQueueMutex,
                 m_chunkDeleteMutex,
                 m_drawingMutex;
+
     std::thread m_chunkGenerationThread;
+    std::thread m_chunkGenerationThread1;
+    std::thread m_chunkGenerationThread2;
+    std::thread m_chunkGenerationThread3;
+
+
     std::atomic<bool> m_stopChunkGeneration;
 
     AM::Shader* m_chunkShader;
@@ -35,7 +41,7 @@ public:
     BlockWorld();
     ~BlockWorld();
 
-    void chunkLoop();
+    void chunkLoop(int windowIndex);
 
     void generateChunk(glm::vec2 chunkPosition);
     void unloadChunk(glm::vec2 chunkPosition);
