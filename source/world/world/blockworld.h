@@ -38,6 +38,8 @@ private:
     TerrainGenerator m_terrainGenerator;
 
 public:
+    static glm::vec2 getChunkPosition(glm::vec3 blockPosition);
+
     BlockWorld();
     ~BlockWorld();
 
@@ -53,8 +55,8 @@ public:
     bool chunkInGeneratingQueue(glm::vec2 chunkPosition);
     void removeFromQueue(glm::vec2 chunkPosition);
     int  loadedChunkAmount();
+    const std::deque<glm::vec2>& getLoadedChunks();
 
-    void update();
     void draw(AM::Camera& cam);
 
 

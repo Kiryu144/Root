@@ -6,7 +6,9 @@
 #include "world/chunk/chunk.h"
 #include "world/block/blockmesh.h"
 #include "resources/resourcemanager.h"
+#include "entity/player/player.h"
 #include "world/world/blockworld.h"
+#include "world/world/world.h"
 
 #include <THREADS/mingw.thread.h>
 #include <THREADS/mingw.mutex.h>
@@ -17,9 +19,8 @@ class Application {
 private:
     bool m_keepRunning = true;
 
-    BlockWorld* blockWorld;
-    AM::Camera cam;
-    AM::Debugcamera debugCam;
+    World* world;
+    AM::Debugcamera* debugCam;
 
     double lastTime = 0;
 

@@ -1,13 +1,14 @@
 /* Created by David Klostermann on 17.06.2017. */
 #include "blockworld.h"
 
+glm::vec2 BlockWorld::getChunkPosition(glm::vec3 blockPosition) {
+    return glm::vec2(int(blockPosition.x) >> 4, int(blockPosition.z) >> 4);
+}
+
 BlockWorld::BlockWorld() : m_terrainGenerator(time(0)) {
     m_stopChunkGeneration = false;
     m_chunkShader = &ResourceManager::shaders.get("chunk");
     m_chunkGenerationThread = std::thread(&BlockWorld::chunkLoop, std::ref(*this), 0);
-    m_chunkGenerationThread1 = std::thread(&BlockWorld::chunkLoop, std::ref(*this), 1);
-    m_chunkGenerationThread2 = std::thread(&BlockWorld::chunkLoop, std::ref(*this), 2);
-    m_chunkGenerationThread3 = std::thread(&BlockWorld::chunkLoop, std::ref(*this), 3);
 }
 
 BlockWorld::~BlockWorld() {
@@ -144,5 +145,9 @@ void BlockWorld::draw(AM::Camera& cam) {
         }
         m_chunkBatch.draw(m_chunkShader, cam);
     }
+}
+
+const std::deque<glm::vec2> &BlockWorld::getLoadedChunks() {
+    return m_loadedChunks;
 }
 

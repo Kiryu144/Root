@@ -2,16 +2,17 @@
 #include "application.h"
 
 
-Application::Application() : cam(AM::Transformation(AM::Position(), AM::Quaternion(), AM::Scale(1440, 900, 900))), debugCam(&cam) {
+Application::Application() {
 
 }
 
 void Application::draw() {
-    blockWorld->draw(cam);
+    world->update();
 }
 
 void Application::init() {
-    AM::WindowHandler::init("Root", glm::vec2(1440, 900), glm::vec4(0, 50/255.0f, 0, 255), 4);
+    AM::WindowHandler::init("Root", glm::vec2(1440, 900), glm::vec4(0, 50/255.0f, 0, 255), 1);
+    glfwSetWindowPos(AM::WindowHandler::getGlfwWindow(), 50, 50);
     AM::InputController::lockMousePosition(glm::vec2(1440/2.0f, 900/2.0f));
 
     m_loadingFinished = false;
@@ -23,7 +24,11 @@ void Application::init() {
     loadingThread.join();
     AM::WindowHandler::getWindow()->makeContextCurrent();
 
-    blockWorld = new BlockWorld();
+    world = new World();
+    world->setViewDistance(16);
+    world->generateChunk(glm::vec2(0, 0));
+    debugCam = new AM::Debugcamera(&world->getPlayer().getCamera());
+    debugCam->setSpeed(10);
 }
 
 void Application::load(){
@@ -36,20 +41,10 @@ void Application::load(){
 void Application::loop() {
     while(m_keepRunning){
         m_keepRunning = AM::WindowHandler::update(true);
-        debugCam.updateMovement();
-        cam.update();
+        debugCam->updateMovement();
         AM::Time::update();
 
-        if(AM::InputController::isClicked(GLFW_KEY_R)){
-            for(int x = -20; x <= 20; x++){
-                for(int y = -20; y <= 20; y++){
-                    blockWorld->deleteChunk(glm::vec2(x, y));
-                    blockWorld->generateChunk(glm::vec2(x, y));
-                }
-            }
-        }
-
-        draw();
+        this->draw();
 
         if(glfwGetTime() - lastTime >= 1){
             lastTime = glfwGetTime();
