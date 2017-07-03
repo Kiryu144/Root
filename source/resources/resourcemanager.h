@@ -11,7 +11,7 @@ private:
     std::map<std::string, std::unique_ptr<T>> m_storage;
 public:
     void add(std::string name, T* element){
-        m_storage[name] = std::unique_ptr<AM::Shader>(element);
+        m_storage[name] = std::unique_ptr<T>(element);
     }
 
     void remove(std::string name){
@@ -26,6 +26,8 @@ public:
 class ResourceManager {
 public:
     static Resource<AM::Shader> shaders;
+    static Resource<AM::VBO<glm::vec3, 3>> vbo3D;
+    static Resource<AM::Texture> textures;
 };
 
 

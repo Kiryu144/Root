@@ -136,14 +136,14 @@ int BlockWorld::loadedChunkAmount() {
     return m_loadedChunks.size();
 }
 
-void BlockWorld::draw(AM::Camera& cam) {
+void BlockWorld::draw(AM::Camera& cam, World& world) {
     {
         std::lock_guard<std::mutex> locker(m_drawingMutex);
         std::lock_guard<std::mutex> locker1(m_loadedChunkMutex);
         for (const glm::vec2 &chunkPos : m_loadedChunks) {
             m_chunkBatch.push(&m_chunks[chunkPos.x][chunkPos.y], chunkPos);
         }
-        m_chunkBatch.draw(m_chunkShader, cam);
+        m_chunkBatch.draw(m_chunkShader, cam, world);
     }
 }
 

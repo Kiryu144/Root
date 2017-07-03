@@ -57,7 +57,7 @@ public:
     int  loadedChunkAmount();
     const std::deque<glm::vec2>& getLoadedChunks();
 
-    void draw(AM::Camera& cam);
+    void draw(AM::Camera& cam, World& world);
 
 
 

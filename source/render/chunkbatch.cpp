@@ -1,5 +1,6 @@
 /* Created by David Klostermann on 18.06.2017. */
 #include "chunkbatch.h"
+#include "world/world/world.h"
 
 void ChunkBatch::push(Chunk *chunk, glm::vec2 chunkPosition) {
     if(chunk != nullptr){
@@ -8,7 +9,7 @@ void ChunkBatch::push(Chunk *chunk, glm::vec2 chunkPosition) {
     }
 }
 
-void ChunkBatch::draw(AM::Shader *shader, AM::Camera& cam) {
+void ChunkBatch::draw(AM::Shader *shader, AM::Camera& cam, World& world) {
     if(m_chunks.size() == 0){
         return;
     }
@@ -18,8 +19,9 @@ void ChunkBatch::draw(AM::Shader *shader, AM::Camera& cam) {
     shader->bind();
     shader->setUniform("projection", cam.getProjection());
     shader->setUniform("view", cam.getView());
-    shader->setUniform("lightPos", glm::vec3(20, 45, 32));
+    shader->setUniform("lightDirection", world.getLightDirection());
     shader->setUniform("lightColor", glm::vec3(1, 1, 1));
+    shader->setUniform("ambientStrenght", world.getAmbientLight());
 
     while(m_chunks.size() > 0){
         Chunk* chunk = m_chunks.top();

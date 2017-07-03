@@ -11,7 +11,7 @@ void Application::draw() {
 }
 
 void Application::init() {
-    AM::WindowHandler::init("Root", glm::vec2(1440, 900), glm::vec4(0, 50/255.0f, 0, 255), 1);
+    AM::WindowHandler::init("Root", glm::vec2(1440, 900), glm::vec4(1/255.0f, 1/255.0f, 1/255.0f, 255), 1);
     glfwSetWindowPos(AM::WindowHandler::getGlfwWindow(), 50, 50);
     AM::InputController::lockMousePosition(glm::vec2(1440/2.0f, 900/2.0f));
 
@@ -23,6 +23,7 @@ void Application::init() {
     }
     loadingThread.join();
     AM::WindowHandler::getWindow()->makeContextCurrent();
+    AM::Logger::info("A single block size: " + std::to_string(int(sizeof(Block))) + "B", 2);
 
     world = new World();
     world->setViewDistance(16);
@@ -33,7 +34,20 @@ void Application::init() {
 
 void Application::load(){
     AM::WindowHandler::getWindow()->makeContextCurrent();
-    ResourceManager::shaders.add("chunk", new AM::Shader("./shaders/color_shader.vert", "./shaders/color_shader.frag"));
+
+    ResourceManager::shaders.add("chunk", new AM::Shader("./shaders/chunk.vert", "./shaders/chunk.frag"));
+    ResourceManager::shaders.add("billboard texture", new AM::Shader("./shaders/bill_texture.vert", "./shaders/bill_texture.frag"));
+    ResourceManager::shaders.add("sky", new AM::Shader("./shaders/sky.vert", "./shaders/sky.frag"));
+
+    ResourceManager::textures.add("sky", new AM::Texture("sky.png"));
+
+    AM::WavefrontData wavefrontData;
+    AM::WavefrontParser::readObj("./sphere.obj", wavefrontData);
+    AM::VBO<glm::vec3, 3>* sphere_vertices = new AM::VBO<glm::vec3, 3>();
+    sphere_vertices->upload(wavefrontData.vertexData.get());
+    //sphere_vertices->upload(standardmesh::model_cube);
+    ResourceManager::vbo3D.add("sphere_vertices", sphere_vertices);
+
     AM::WindowHandler::getWindow()->makeContextNull();
     m_loadingFinished = true;
 }
