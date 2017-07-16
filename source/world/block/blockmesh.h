@@ -15,6 +15,10 @@ private:
     AM::VBO<glm::vec3, 3> m_normals;
     AM::VBO<glm::vec4, 4> m_colors;
 
+    AM::Mesh<glm::vec3> f_vertices;
+    AM::Mesh<glm::vec3> f_normals;
+    AM::Mesh<glm::vec4> f_color;
+
     int m_verticeAmount = 0;
 
     std::vector<glm::vec3> translateVertices(std::vector<glm::vec3>& vertices, glm::vec3 pos);
@@ -23,6 +27,7 @@ public:
 
     void regenerate(AABB aabb, std::set<int> yCoords);
     void regenerate(AABB aabb);
+    void upload();
 
     AM::VBO<glm::vec3, 3>& getVerticeVBO();
     AM::VBO<glm::vec3, 3>& getNormalVBO();

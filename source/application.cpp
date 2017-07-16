@@ -11,7 +11,7 @@ void Application::draw() {
 }
 
 void Application::init() {
-    AM::WindowHandler::init("Root", glm::vec2(1440, 900), glm::vec4(1/255.0f, 1/255.0f, 1/255.0f, 255), 1);
+    AM::WindowHandler::init("Root", glm::vec2(1440, 900), glm::vec4(1/255.0f, 1/255.0f, 1/255.0f, 255), 4);
     glfwSetWindowPos(AM::WindowHandler::getGlfwWindow(), 50, 50);
     AM::InputController::lockMousePosition(glm::vec2(1440/2.0f, 900/2.0f));
 
@@ -59,6 +59,10 @@ void Application::loop() {
         AM::Time::update();
 
         this->draw();
+
+        if(AM::InputController::isClicked(GLFW_KEY_F)){
+            world->setBlock(world->getPlayer().getTransformation().getPosition().get(), Block(Voxel(glm::vec4(1, 0, 0, 1))));
+        }
 
         if(glfwGetTime() - lastTime >= 1){
             lastTime = glfwGetTime();

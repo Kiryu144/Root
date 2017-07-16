@@ -18,9 +18,9 @@ void BlockMesh::regenerate(AABB aabb, std::set<int> yCoords) {
     if(m_normals.vboExists()) m_normals.deleteVBO();
     if(m_colors.vboExists()) m_colors.deleteVBO();
 
-    AM::Mesh<glm::vec3> f_vertices;
-    AM::Mesh<glm::vec3> f_normals;
-    AM::Mesh<glm::vec4> f_color;
+    f_vertices = AM::Mesh<glm::vec3>();
+    f_normals = AM::Mesh<glm::vec3>();
+    f_color = AM::Mesh<glm::vec4>();
 
     auto it = yCoords.begin();
 
@@ -104,12 +104,6 @@ void BlockMesh::regenerate(AABB aabb, std::set<int> yCoords) {
             }
         }
     }
-
-    m_vertices.upload(f_vertices.get());
-    m_normals.upload(f_normals.get());
-    m_colors.upload(f_color.get());
-
-    m_verticeAmount = f_vertices.get().size();
 }
 
 void BlockMesh::regenerate(AABB aabb) {
@@ -134,6 +128,14 @@ AM::VBO<glm::vec4, 4>& BlockMesh::getColorVBO() {
 
 int BlockMesh::getVerticeAmount() {
     return m_verticeAmount;
+}
+
+void BlockMesh::upload() {
+    m_vertices.upload(f_vertices.get());
+    m_normals.upload(f_normals.get());
+    m_colors.upload(f_color.get());
+
+    m_verticeAmount = f_vertices.get().size();
 }
 
 

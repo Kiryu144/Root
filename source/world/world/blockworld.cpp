@@ -5,10 +5,19 @@ glm::vec2 BlockWorld::getChunkPosition(glm::vec3 blockPosition) {
     return glm::vec2(int(blockPosition.x) >> 4, int(blockPosition.z) >> 4);
 }
 
+glm::vec3 BlockWorld::getChunkOffset(glm::vec3 worldPosition) {
+    glm::vec2 positionChunk = getChunkPosition(worldPosition);
+    glm::vec3 chunkOffset = glm::vec3(int(std::round(worldPosition.x)) % CHUNK_WIDTH, worldPosition.y, int(std::round(worldPosition.z)) % CHUNK_WIDTH);
+    return chunkOffset;
+}
+
 BlockWorld::BlockWorld() : m_terrainGenerator(time(0)) {
     m_stopChunkGeneration = false;
     m_chunkShader = &ResourceManager::shaders.get("chunk");
-    m_chunkGenerationThread = std::thread(&BlockWorld::chunkLoop, std::ref(*this), 0);
+
+    m_chunkGenerationThread = std::thread(&BlockWorld::chunkGenerationLoop, std::ref(*this));
+    m_chunkMeshThread = std::thread(&BlockWorld::chunkMeshLoop, std::ref(*this), 1);
+    //m_chunkManagementThread = std::thread(&BlockWorld::chunkManagementThread, std::ref(*this), 2);
 }
 
 BlockWorld::~BlockWorld() {
@@ -16,25 +25,44 @@ BlockWorld::~BlockWorld() {
     m_chunkGenerationThread.join();
 }
 
-void BlockWorld::generateChunk(glm::vec2 chunkPosition) {
-    if(!this->chunkInGeneratingQueue(chunkPosition)) {
-        std::lock_guard<std::mutex> locker(m_chunkQueueMutex);
-        m_generateQueue.push_back(chunkPosition);
-    }
-}
 
 void BlockWorld::unloadChunk(glm::vec2 chunkPosition) {
     std::lock_guard<std::mutex> locker(m_loadedChunkMutex);
-    auto it = std::find(m_loadedChunks.begin(), m_loadedChunks.end(), chunkPosition);
-    if (it != m_loadedChunks.end()) {
-        m_loadedChunks.erase(it);
+    auto it = std::find(m_chunksLoaded.begin(), m_chunksLoaded.end(), chunkPosition);
+    if (it != m_chunksLoaded.end()) {
+        m_chunksLoaded.erase(it);
     }
 }
 
-void BlockWorld::addToLoadedChunks(glm::vec2 chunkPosition) {
+void BlockWorld::loadChunk(glm::vec2 chunkPosition) {
     if(!this->chunkLoaded(chunkPosition)){
         std::lock_guard<std::mutex> locker(m_loadedChunkMutex);
-        m_loadedChunks.push_back(chunkPosition);
+        m_chunksLoaded.push_back(chunkPosition);
+    }
+}
+
+bool BlockWorld::chunkLoaded(glm::vec2 chunkPosition) {
+    std::lock_guard<std::mutex> locker(m_loadedChunkMutex);
+    return std::find(m_chunksLoaded.begin(), m_chunksLoaded.end(), chunkPosition) != m_chunksLoaded.end();
+}
+
+bool BlockWorld::chunkIsBusy(glm::vec2 chunkPosition) {
+    std::lock_guard<std::mutex> locker(m_busyChunks);
+    return std::find(m_chunksBusy.begin(), m_chunksBusy.end(), chunkPosition) != m_chunksBusy.end();
+}
+
+void BlockWorld::removeBusyChunk(glm::vec2 chunkPosition) {
+    std::lock_guard<std::mutex> locker(m_busyChunks);
+    auto it = std::find(m_chunksBusy.begin(), m_chunksBusy.end(), chunkPosition);
+    if (it != m_chunksBusy.end()) {
+        m_chunksBusy.erase(it);
+    }
+}
+
+void BlockWorld::addBusyChunk(glm::vec2 chunkPosition) {
+    if(!this->chunkIsBusy(chunkPosition)){
+        std::lock_guard<std::mutex> locker(m_busyChunks);
+        m_chunksBusy.push_back(chunkPosition);
     }
 }
 
@@ -46,6 +74,7 @@ void BlockWorld::deleteChunk(glm::vec2 chunkPosition) {
 }
 
 Chunk &BlockWorld::getChunk(glm::vec2 chunkPosition) {
+    std::lock_guard<std::mutex> locker(m_chunkMutex);
     return m_chunks[chunkPosition.x][chunkPosition.y];
 }
 
@@ -60,59 +89,65 @@ bool BlockWorld::chunkExists(glm::vec2 chunkPosition) {
     return false;
 }
 
-bool BlockWorld::chunkLoaded(glm::vec2 chunkPosition) {
-    if(!this->chunkExists(chunkPosition)){
-        return false;
-    }
-    std::lock_guard<std::mutex> locker(m_loadedChunkMutex);
-    return std::find(m_loadedChunks.begin(), m_loadedChunks.end(), chunkPosition) != m_loadedChunks.end();
-}
 
-bool BlockWorld::chunkInGeneratingQueue(glm::vec2 chunkPosition) {
-    std::lock_guard<std::mutex> locker(m_chunkQueueMutex);
-    return std::find(m_generateQueue.begin(), m_generateQueue.end(), chunkPosition) != m_generateQueue.end();
-}
-
-void BlockWorld::removeFromQueue(glm::vec2 chunkPosition) {
-    std::lock_guard<std::mutex> locker(m_chunkQueueMutex);
-    auto it = std::find(m_generateQueue.begin(), m_generateQueue.end(), chunkPosition);
-    while (it != m_generateQueue.end()) {
-        m_generateQueue.erase(it);
-        it = std::find(m_generateQueue.begin(), m_generateQueue.end(), chunkPosition);
-    }
-}
-
-void BlockWorld::chunkLoop(int windowIndex) {
-    AM::WindowHandler::getSharedWindow(windowIndex)->makeContextCurrent();
+void BlockWorld::chunkGenerationLoop() {
     while(!m_stopChunkGeneration){
         m_chunkQueueMutex.lock();
-        if(m_generateQueue.size() > 0){
-            glm::vec2 chunkPos = m_generateQueue.at(0); //Get position of the chunk to generate
-            m_generateQueue.erase(m_generateQueue.begin());
+        if(m_chunkGenerationQueue.size() > 0){
+            glm::vec2 chunkPosition = m_chunkGenerationQueue.capBottom();
             m_chunkQueueMutex.unlock();
-            this->unloadChunk(chunkPos); //Prevent main thread from drawing unfinished chunk
 
-            Chunk* chunk = nullptr;
+            this->unloadChunk(chunkPosition); //Prevent main thread from drawing unfinished chunk
 
             m_chunkMutex.lock();
-            m_chunks[chunkPos.x][chunkPos.y];
-            chunk = &m_chunks[chunkPos.x][chunkPos.y];
+            Chunk* chunk = &m_chunks[chunkPosition.x][chunkPosition.y];
             m_chunkMutex.unlock();
 
-            m_terrainGenerator.generate(*chunk, chunkPos);
+            m_terrainGenerator.generate(*chunk, chunkPosition); // ~+~ MAAAAAAAGIC ~+~
 
-            chunk->regenerateChunkMesh();
-            glFinish(); //TODO: Check if this is a performance problem. Maybe batch uploading?
+            m_chunkMeshMutex.lock();
+            m_chunkMeshQueue.add(chunkPosition);
+            m_chunkMeshMutex.unlock();
 
-            this->addToLoadedChunks(chunkPos);
+            this->loadChunk(chunkPosition); //Give it back to the main thread
         }else{
             m_chunkQueueMutex.unlock();
         }
+    }
+}
 
+void BlockWorld::chunkMeshLoop(int windowIndex) {
+    AM::WindowHandler::getSharedWindow(windowIndex)->makeContextCurrent();
+    while(!m_stopChunkGeneration){
+        m_chunkMeshMutex.lock();
+        if(m_chunkMeshQueue.size() > 0){
+            glm::vec2 chunkPos = m_chunkMeshQueue.capBottom(); //Get position of the chunkmesh to generate
+            m_chunkMeshMutex.unlock();
+
+            if(this->chunkExists(chunkPos)){
+                this->addBusyChunk(chunkPos);
+                m_chunkMutex.lock();
+                Chunk* chunk = &m_chunks[chunkPos.x][chunkPos.y];
+                m_chunkMutex.unlock();
+                chunk->regenerateChunkMesh();
+                chunk->uploadChunkMesh();
+                glFinish();
+                this->removeBusyChunk(chunkPos);
+            }
+        }else{
+            m_chunkMeshMutex.unlock();
+        }
+    }
+}
+
+/*
+void BlockWorld::chunkManagementThread(int windowIndex) {
+    AM::WindowHandler::getSharedWindow(windowIndex)->makeContextCurrent();
+    while(!m_stopChunkGeneration){
         m_chunkDeleteMutex.lock();
         if(m_deletingQueue.size() > 0){
             std::lock_guard<std::mutex> locker(m_drawingMutex);
-            glm::vec2 chunkPos = m_deletingQueue.at(0); //Get position of the chunk to generate
+            glm::vec2 chunkPos = m_deletingQueue.at(0); //Get position of the chunk to delete
             m_deletingQueue.erase(m_deletingQueue.begin());
             m_chunkDeleteMutex.unlock();
 
@@ -120,34 +155,63 @@ void BlockWorld::chunkLoop(int windowIndex) {
                 m_chunkMutex.lock();
                 m_chunks.at(chunkPos.x).erase(chunkPos.y);
                 m_chunkMutex.unlock();
-            }else{
-                this->removeFromQueue(chunkPos);
             }
-
+            this->removeFromQueue(chunkPos);
             this->unloadChunk(chunkPos);
         }else{
             m_chunkDeleteMutex.unlock();
         }
     }
-}
+}*/
 
 int BlockWorld::loadedChunkAmount() {
     std::lock_guard<std::mutex> locker(m_loadedChunkMutex);
-    return m_loadedChunks.size();
+    return m_chunksLoaded.size();
 }
 
 void BlockWorld::draw(AM::Camera& cam, World& world) {
-    {
-        std::lock_guard<std::mutex> locker(m_drawingMutex);
-        std::lock_guard<std::mutex> locker1(m_loadedChunkMutex);
-        for (const glm::vec2 &chunkPos : m_loadedChunks) {
-            m_chunkBatch.push(&m_chunks[chunkPos.x][chunkPos.y], chunkPos);
+    std::lock_guard<std::mutex> locker(m_drawingMutex);
+    std::lock_guard<std::mutex> locker2(m_chunkMutex);
+    std::lock_guard<std::mutex> locker1(m_loadedChunkMutex);
+
+    for (const glm::vec2 &chunkPos : m_chunksLoaded) {
+        Chunk* chunk = &m_chunks[chunkPos.x][chunkPos.y];
+
+        if(chunk->getChunkMesh().getVerticeAmount() > 0 && !this->chunkIsBusy(chunkPos)){
+            m_chunkBatch.push(chunk, chunkPos);
         }
-        m_chunkBatch.draw(m_chunkShader, cam, world);
     }
+
+    m_chunkBatch.draw(m_chunkShader, cam, world);
 }
 
 const std::deque<glm::vec2> &BlockWorld::getLoadedChunks() {
-    return m_loadedChunks;
+    return m_chunksLoaded;
 }
+
+Block BlockWorld::getBlock(glm::vec3 worldPosition) {
+    return Block();
+}
+
+void BlockWorld::setBlock(glm::vec3 worldPosition, Block block) {
+    glm::vec2 chunkPos = getChunkPosition(worldPosition);
+    if(this->chunkExists(chunkPos))
+    m_chunkMutex.lock();
+    m_chunks[chunkPos.x][chunkPos.y].setBlock(getChunkOffset(worldPosition), block);
+    m_chunkMutex.unlock();
+    std::lock_guard<std::mutex> locker(m_chunkMeshMutex);
+    m_chunkMeshQueue.add(chunkPos);
+}
+
+void BlockWorld::generateChunk(glm::vec2 chunkPosition) {
+    std::lock_guard<std::mutex> locker(m_chunkQueueMutex);
+    m_chunkGenerationQueue.add(chunkPosition);
+}
+
+
+
+
+
+
+
 

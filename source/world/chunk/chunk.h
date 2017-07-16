@@ -40,6 +40,7 @@ public:
 
     BlockMesh& getChunkMesh();
     void regenerateChunkMesh();
+    void uploadChunkMesh();
 };
 
 #endif

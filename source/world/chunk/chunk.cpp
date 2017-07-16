@@ -67,3 +67,7 @@ BlockMesh &Chunk::getChunkMesh() {
 void Chunk::regenerateChunkMesh() {
     m_blockMesh.regenerate(AABB(glm::vec3(0, 0, 0), glm::vec3(16, 8, 16)), m_existingLayers);
 }
+
+void Chunk::uploadChunkMesh() {
+    m_blockMesh.upload();
+}

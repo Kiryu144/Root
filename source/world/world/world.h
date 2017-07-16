@@ -12,7 +12,7 @@
 class World : public BlockWorld {
 private:
     Player m_protagonist;
-    int m_playerViewDistance = 4;
+    int m_playerViewDistance = 2;
 
     static const int m_maxTime = 24000;
     float m_time = 3000;
