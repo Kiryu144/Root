@@ -40,6 +40,7 @@ protected:
     ChunkBatch m_chunkBatch;
 
     TerrainGenerator m_terrainGenerator;
+
 public:
     static glm::vec2 getChunkPosition(glm::vec3 blockPosition);
     static glm::vec3 getChunkOffset(glm::vec3 worldPosition);
@@ -49,7 +50,7 @@ public:
 
     void chunkGenerationLoop();
     void chunkMeshLoop(int windowIndex);
-    //void chunkManagementThread(int windowIndex);
+    void chunkManagementThread(int windowIndex);
 
     void unloadChunk(glm::vec2 chunkPosition);
     void loadChunk(glm::vec2 chunkPosition);

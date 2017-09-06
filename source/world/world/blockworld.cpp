@@ -7,7 +7,8 @@ glm::vec2 BlockWorld::getChunkPosition(glm::vec3 blockPosition) {
 
 glm::vec3 BlockWorld::getChunkOffset(glm::vec3 worldPosition) {
     glm::vec2 positionChunk = getChunkPosition(worldPosition);
-    glm::vec3 chunkOffset = glm::vec3(int(std::round(worldPosition.x)) % CHUNK_WIDTH, worldPosition.y, int(std::round(worldPosition.z)) % CHUNK_WIDTH);
+    glm::vec3 chunkOffset = glm::vec3(AM::pythonModulus(int(worldPosition.x), CHUNK_WIDTH), worldPosition.y, AM::pythonModulus(int(worldPosition.z), CHUNK_WIDTH));
+    //glm::vec3 chunkOffset = glm::vec3(int(worldPosition.x) % CHUNK_WIDTH, worldPosition.y, int(worldPosition.z) % CHUNK_WIDTH);
     return chunkOffset;
 }
 
@@ -24,7 +25,6 @@ BlockWorld::~BlockWorld() {
     m_stopChunkGeneration = true;
     m_chunkGenerationThread.join();
 }
-
 
 void BlockWorld::unloadChunk(glm::vec2 chunkPosition) {
     std::lock_guard<std::mutex> locker(m_loadedChunkMutex);
@@ -140,29 +140,38 @@ void BlockWorld::chunkMeshLoop(int windowIndex) {
     }
 }
 
-/*
 void BlockWorld::chunkManagementThread(int windowIndex) {
     AM::WindowHandler::getSharedWindow(windowIndex)->makeContextCurrent();
     while(!m_stopChunkGeneration){
         m_chunkDeleteMutex.lock();
         if(m_deletingQueue.size() > 0){
-            std::lock_guard<std::mutex> locker(m_drawingMutex);
             glm::vec2 chunkPos = m_deletingQueue.at(0); //Get position of the chunk to delete
             m_deletingQueue.erase(m_deletingQueue.begin());
             m_chunkDeleteMutex.unlock();
+
+            this->chunkIsBusy(chunkPos);
 
             if(this->chunkExists(chunkPos)){
                 m_chunkMutex.lock();
                 m_chunks.at(chunkPos.x).erase(chunkPos.y);
                 m_chunkMutex.unlock();
             }
-            this->removeFromQueue(chunkPos);
+
+            m_chunkMeshMutex.lock();
+            m_chunkMeshQueue.remove(chunkPos);
+            m_chunkMeshMutex.unlock();
+
+            m_chunkQueueMutex.lock();
+            m_chunkGenerationQueue.remove(chunkPos);
+            m_chunkQueueMutex.unlock();
+
             this->unloadChunk(chunkPos);
+            this->removeBusyChunk(chunkPos);
         }else{
             m_chunkDeleteMutex.unlock();
         }
     }
-}*/
+}
 
 int BlockWorld::loadedChunkAmount() {
     std::lock_guard<std::mutex> locker(m_loadedChunkMutex);
@@ -197,10 +206,12 @@ void BlockWorld::setBlock(glm::vec3 worldPosition, Block block) {
     glm::vec2 chunkPos = getChunkPosition(worldPosition);
     if(this->chunkExists(chunkPos))
     m_chunkMutex.lock();
-    m_chunks[chunkPos.x][chunkPos.y].setBlock(getChunkOffset(worldPosition), block);
+    glm::vec3 chunkOffset = getChunkOffset(worldPosition);
+    AM::Logger::info(glm::to_string(chunkOffset));
+    m_chunks[chunkPos.x][chunkPos.y].setBlock(chunkOffset, block);
     m_chunkMutex.unlock();
     std::lock_guard<std::mutex> locker(m_chunkMeshMutex);
-    m_chunkMeshQueue.add(chunkPos);
+    m_chunkMeshQueue.addPriority(chunkPos);
 }
 
 void BlockWorld::generateChunk(glm::vec2 chunkPosition) {

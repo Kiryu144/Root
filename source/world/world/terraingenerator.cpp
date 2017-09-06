@@ -13,7 +13,7 @@ void TerrainGenerator::generate(Chunk &chunk, glm::vec2 chunkPosition) {
             glm::vec3 worldPosition = glm::vec3(x, 0, z) + (vec3ChunkPos * glm::vec3(16));
             float y = m_terrainNoise.noise(worldPosition.x/50.0f, worldPosition.z/50.0f) * 32;
 
-            chunk.setBlock(glm::vec3(x, std::round(y), z), Block(Voxel(glm::vec4(0, 0.75, 0, 1)))); //TODO: Performance?
+            chunk.setBlock(glm::vec3(x, std::round(y), z), Block(Voxel(AM::rgb(41, 130, 40)))); //TODO: Performance?
             for(int i = 1; i < 10; i++){
                 chunk.setBlock(glm::vec3(x, std::round(y) - i, z), Block(Voxel(glm::vec4(211/255.0f, 211/255.0f, 211/255.0f, 1))));
             }

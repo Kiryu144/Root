@@ -2,8 +2,8 @@
 #ifndef ROOT_CHUNK_H
 #define ROOT_CHUNK_H
 
-#define CHUNK_WIDTH 16
-#define CHUNK_AREA 16*16
+#define CHUNK_WIDTH int(16)
+#define CHUNK_AREA int(16*16)
 
 #include <vector>
 #include <map>

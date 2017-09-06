@@ -20,8 +20,6 @@ namespace Render{
     struct UNRenderData : public URenderData, public NRenderData { //Vertices + UV data + Normal data
 
     };
-
-
 }
 
 

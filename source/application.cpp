@@ -23,7 +23,7 @@ void Application::init() {
     }
     loadingThread.join();
     AM::WindowHandler::getWindow()->makeContextCurrent();
-    AM::Logger::info("A single block size: " + std::to_string(int(sizeof(Block))) + "B", 2);
+    AM::Logger::info("A single block size: " + std::to_string(int(sizeof(Block))) + "B");
 
     world = new World();
     world->setViewDistance(16);
@@ -53,10 +53,8 @@ void Application::load(){
 }
 
 void Application::loop() {
-    while(m_keepRunning){
-        m_keepRunning = AM::WindowHandler::update(true);
+    while((m_keepRunning = AM::framestart(true, true))){
         debugCam->updateMovement();
-        AM::Time::update();
 
         this->draw();
 
@@ -68,8 +66,6 @@ void Application::loop() {
             lastTime = glfwGetTime();
             this->oncePerSecond();
         }
-
-        AM::InputController::process();
     }
 }
 
