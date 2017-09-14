@@ -15,6 +15,7 @@ class BlockWorld {
 protected:
     std::map<int, std::map<int, Chunk>> m_chunks; //All chunks stored
     std::deque<glm::vec2> m_chunksLoaded; //Chunks currently updated/drawn
+
     std::deque<glm::vec2> m_chunksBusy; //Chunks that is worked on (kinda like a mutex)
 
     AM::Queue<glm::vec2> m_chunkGenerationQueue; //Chunks that have to be generated
